@@ -1,4 +1,4 @@
-git add README.md er_diagram.png# AutoSelect
+
 **Intelligent Car Recommendation & Inventory Management System**
 CSDS 341 · Introduction to Database Systems · Spring 2026
 
