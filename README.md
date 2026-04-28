@@ -77,4 +77,4 @@ python python/app.py
 |---|---|
 | Michael | Schema design, BCNF, easy queries, Demo 1–3 |
 | Jani | Hard queries, Relational Algebra & TRC, Demo 4–6 |
-| Dhoops | Admin ops, window functions, data loader, Web UI, Demo 7–10 |
+| Dhoopshikha | Admin ops, window functions, data loader, Web UI, Demo 7–10 |
