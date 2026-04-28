@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoSelect — Car Recommendation & Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #F5F4F0;
+  --surface:    #FFFFFF;
+  --surface2:   #F0EFE9;
+  --border:     #E2E0D8;
+  --text:       #1A1916;
+  --text-2:     #6B6860;
+  --text-3:     #9B9890;
+  --accent:     #1C3A5C;
+  --accent-2:   #2A5298;
+  --green:      #2D6A4F;
+  --red:        #C0392B;
+  --radius:     10px;
+  --shadow:     0 2px 8px rgba(0,0,0,0.07), 0 0 1px rgba(0,0,0,0.06);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.12), 0 0 1px rgba(0,0,0,0.06);
+  --transition: 0.18s ease;
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+.app { display: flex; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar { width: 230px; min-width: 230px; background: var(--accent); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; overflow-y: auto; }
+.sidebar-logo { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.sidebar-logo h1 { font-family: 'DM Serif Display', serif; font-size: 22px; color: #fff; letter-spacing: -0.3px; }
+.sidebar-logo span { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1.2px; font-weight: 500; display: block; margin-top: 2px; }
+.nav-section { padding: 18px 14px 8px; }
+.nav-label { font-size: 10px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(255,255,255,0.35); padding: 0 10px; margin-bottom: 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 7px; color: rgba(255,255,255,0.7); cursor: pointer; transition: var(--transition); font-size: 13.5px; font-weight: 400; margin-bottom: 1px; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 500; }
+.nav-item svg { opacity: 0.8; flex-shrink: 0; }
+.nav-item.active svg { opacity: 1; }
+.sidebar-footer { margin-top: auto; padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11px; color: rgba(255,255,255,0.3); }
+
+/* ── Main ── */
+.main { margin-left: 230px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+.topbar-title { font-size: 17px; font-weight: 600; }
+.topbar-subtitle { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; background: var(--surface2); color: var(--text-2); border: 1px solid var(--border); }
+.badge.green { background: #EEF8F3; color: var(--green); border-color: #B7DFCA; }
+.content { padding: 28px 32px; flex: 1; }
+.page { display: none; animation: fadeUp 0.22s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Section header ── */
+.section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.section-title { font-family: 'DM Serif Display', serif; font-size: 26px; line-height: 1.2; }
+.section-title small { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-3); font-weight: 400; margin-top: 2px; }
+
+/* ── Stat cards ── */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+.stat-label { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+.stat-value { font-size: 28px; font-weight: 600; line-height: 1.2; margin-top: 4px; }
+.stat-value.accent { color: var(--accent-2); }
+.stat-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+/* ── Filter bar ── */
+.filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 20px; box-shadow: var(--shadow); }
+.filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
+.filter-group label { font-size: 11px; font-weight: 500; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; }
+.filter-group select, .filter-group input { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); outline: none; transition: border-color var(--transition); }
+.filter-group select:focus, .filter-group input:focus { border-color: var(--accent-2); }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer; border: none; transition: var(--transition); white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-2); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: #FEF2F2; color: var(--red); border: 1px solid #FCA5A5; }
+.btn-danger:hover { background: #FEE2E2; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+/* ── Vehicle grid ── */
+.vehicle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.vehicle-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); transition: box-shadow var(--transition), transform var(--transition); cursor: pointer; }
+.vehicle-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.vc-header { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); padding: 20px; position: relative; }
+.vc-brand { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+.vc-model { font-family: 'DM Serif Display', serif; font-size: 20px; color: #fff; line-height: 1.2; margin-top: 2px; }
+.vc-year { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+.vc-fuel-badge { position: absolute; top: 14px; right: 14px; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.fuel-Electric { background: #D1FAE5; color: #065F46; }
+.fuel-Gas      { background: #FEF3C7; color: #92400E; }
+.fuel-Hybrid   { background: #DBEAFE; color: #1E40AF; }
+.fuel-Diesel   { background: #F3F4F6; color: #374151; }
+.vc-body { padding: 16px 20px; }
+.vc-price { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+.vc-price span { font-size: 13px; font-weight: 400; color: var(--text-3); }
+.vc-meta { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+.vc-meta-item { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+.vc-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.stock-indicator { font-size: 11px; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+.stock-dot { width: 7px; height: 7px; border-radius: 50%; }
+.in-stock .stock-dot { background: var(--green); }
+.in-stock { color: var(--green); }
+.no-stock .stock-dot { background: var(--red); }
+.no-stock { color: var(--red); }
+
+/* ── Table ── */
+.table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.table-title { font-size: 15px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+/* ── Modal ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-lg); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; animation: fadeUp 0.2s ease; }
+.modal-header { padding: 22px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+.modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+.modal-close:hover { background: var(--surface2); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── Form ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+.form-group input, .form-group select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); outline: none; transition: border-color var(--transition); }
+.form-group input:focus, .form-group select:focus { border-color: var(--accent-2); background: #fff; }
+
+/* ── Tabs ── */
+.tabs { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 4px; margin-bottom: 20px; width: fit-content; }
+.tab { padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text-2); font-family: 'DM Sans', sans-serif; transition: var(--transition); }
+.tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ── Misc ── */
+.empty-state { text-align: center; padding: 52px 20px; color: var(--text-3); }
+.empty-state p { font-size: 14px; }
+.loading { text-align: center; padding: 40px; color: var(--text-3); font-size: 13px; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.chip-available    { background: #D1FAE5; color: #065F46; }
+.chip-out          { background: #FEE2E2; color: #991B1B; }
+.chip-discontinued { background: #F3F4F6; color: #6B7280; }
+.info-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.info-row:last-child { border-bottom: none; }
+.info-row .key { color: var(--text-2); }
+.info-row .val { font-weight: 500; }
+.success-toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 999; display: none; }
+
+/* ── Dealer card ── */
+.dealer-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); display: flex; align-items: flex-start; gap: 14px; }
+.dealer-icon { width: 38px; height: 38px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.dealer-name { font-weight: 600; font-size: 14px; }
+.dealer-loc  { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+.dealer-phone { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+@media (max-width: 900px) {
+  .sidebar { width: 200px; min-width: 200px; }
+  .main { margin-left: 200px; }
+  .content { padding: 20px 18px; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>AutoSelect</h1>
+    <span>Vehicle Platform</span>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Customer</div>
+    <button class="nav-item active" onclick="showPage('browse', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Browse Vehicles
+    </button>
+    <button class="nav-item" onclick="showPage('dealerships', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Dealerships
+    </button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Admin</div>
+    <button class="nav-item" onclick="showPage('admin-inventory', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Manage Inventory
+    </button>
+    <button class="nav-item" onclick="showPage('admin-vehicles', this)">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Vehicle
+    </button>
+  </div>
+  <div class="sidebar-footer">CSDS 341 · Spring 2026</div>
+</nav>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Browse Vehicles</div>
+      <div class="topbar-subtitle" id="topbar-sub">Find your perfect vehicle</div>
+    </div>
+    <div class="topbar-right">
+      <span class="badge green" id="db-status">● Connected</span>
+      <span class="badge" id="result-count"></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- PAGE: BROWSE -->
+    <div class="page active" id="page-browse">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label">Total Models</div><div class="stat-value" id="s-vehicles">—</div></div>
+        <div class="stat-card"><div class="stat-label">In Stock</div><div class="stat-value accent" id="s-stock">—</div></div>
+        <div class="stat-card"><div class="stat-label">Dealerships</div><div class="stat-value" id="s-dealers">—</div></div>
+        <div class="stat-card"><div class="stat-label">EV Models</div><div class="stat-value" id="s-ev">—</div><div class="stat-sub">Electric vehicles</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. MSRP</div><div class="stat-value" id="s-avg">—</div></div>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label>Fuel Type</label>
+          <select id="f-fuel">
+            <option value="">All Fuels</option>
+            <option>Gas</option><option>Hybrid</option><option>Electric</option><option>Diesel</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Body Style</label>
+          <select id="f-body">
+            <option value="">All Styles</option>
+            <option>Sedan</option><option>SUV</option><option>Truck</option>
+            <option>Coupe</option><option>Hatchback</option><option>Van</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Brand</label>
+          <input id="f-brand" placeholder="e.g. Toyota" />
+        </div>
+        <div class="filter-group">
+          <label>Max Budget ($)</label>
+          <input id="f-budget" type="number" placeholder="e.g. 40000" />
+        </div>
+        <div class="filter-group" style="justify-content:flex-end">
+          <label style="visibility:hidden">Search</label>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="loadVehicles()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Search
+            </button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div class="vehicle-grid" id="vehicle-grid">
+        <div class="loading">Loading vehicles…</div>
+      </div>
+    </div>
+
+    <!-- PAGE: DEALERSHIPS -->
+    <div class="page" id="page-dealerships">
+      <div class="section-header">
+        <div class="section-title">Dealerships<small>Browse locations and inventory</small></div>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap:14px" id="dealer-list">
+        <div class="loading">Loading dealerships…</div>
+      </div>
+    </div>
+
+    <!-- PAGE: ADMIN INVENTORY -->
+    <div class="page" id="page-admin-inventory">
+      <div class="section-header">
+        <div class="section-title">Manage Inventory<small>Update stock and pricing</small></div>
+        <button class="btn btn-primary" onclick="openAddInventoryModal()">+ Add to Inventory</button>
+      </div>
+      <div class="filter-bar" style="margin-bottom:16px">
+        <div class="filter-group">
+          <label>Filter by Dealership</label>
+          <select id="admin-dealer-filter" onchange="loadAdminInventory()">
+            <option value="">All Dealerships</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><span class="table-title">Inventory Records</span></div>
+        <table>
+          <thead><tr><th>ID</th><th>Vehicle</th><th>Year</th><th>Fuel</th><th>Stock</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="admin-inv-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAGE: ADD VEHICLE -->
+    <div class="page" id="page-admin-vehicles">
+      <div class="section-header">
+        <div class="section-title">Add New Vehicle<small>Register a new model to the catalogue</small></div>
+      </div>
+      <div style="max-width:540px">
+        <div class="table-card" style="padding:24px">
+          <div class="form-grid">
+            <div class="form-group"><label>Brand *</label><input id="nv-brand" placeholder="e.g. Toyota" /></div>
+            <div class="form-group"><label>Model *</label><input id="nv-model" placeholder="e.g. Camry" /></div>
+            <div class="form-group"><label>Year *</label><input id="nv-year" type="number" placeholder="2023" /></div>
+            <div class="form-group"><label>MSRP ($) *</label><input id="nv-price" type="number" placeholder="28000" /></div>
+            <div class="form-group"><label>Fuel Type *</label>
+              <select id="nv-fuel"><option>Gas</option><option>Hybrid</option><option>Electric</option><option>Diesel</option></select>
+            </div>
+            <div class="form-group"><label>Body Style</label>
+              <select id="nv-body"><option value="">—</option><option>Sedan</option><option>SUV</option><option>Truck</option><option>Coupe</option><option>Hatchback</option><option>Van</option></select>
+            </div>
+            <div class="form-group full"><label>Engine Type</label><input id="nv-engine" placeholder="e.g. 2.5L I4" /></div>
+          </div>
+          <div style="margin-top:18px; display:flex; gap:10px;">
+            <button class="btn btn-primary" onclick="submitNewVehicle()">Add Vehicle</button>
+            <button class="btn btn-secondary" onclick="clearNewVehicleForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- MODAL: Vehicle Detail -->
+<div class="modal-overlay" id="modal-vehicle">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="mv-title">Vehicle</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:3px" id="mv-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-vehicle')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="vehicle-tabs">
+        <button class="tab active" onclick="switchTab('details', this)">Details</button>
+        <button class="tab" onclick="switchTab('availability', this)">Availability</button>
+        <button class="tab" onclick="switchTab('financing', this)">Financing</button>
+      </div>
+      <div id="modal-tab-details"></div>
+      <div id="modal-tab-availability" style="display:none"></div>
+      <div id="modal-tab-financing" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Inventory -->
+<div class="modal-overlay" id="modal-add-inv">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add to Inventory</div>
+      <button class="modal-close" onclick="closeModal('modal-add-inv')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Vehicle *</label><select id="inv-vid"></select></div>
+        <div class="form-group"><label>Dealership *</label><select id="inv-did"></select></div>
+        <div class="form-group"><label>Stock Quantity *</label><input id="inv-qty" type="number" min="0" placeholder="5" /></div>
+        <div class="form-group"><label>Dealer Price ($) *</label><input id="inv-price" type="number" placeholder="28000" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-inv')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddInventory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Inventory -->
+<div class="modal-overlay" id="modal-edit-inv">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Edit Inventory</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-inv')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-vid" />
+      <input type="hidden" id="edit-did" />
+      <div class="form-grid">
+        <div class="form-group"><label>Stock Quantity</label><input id="edit-qty" type="number" min="0" /></div>
+        <div class="form-group"><label>Dealer Price ($)</label><input id="edit-price" type="number" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="discontinueInventory()">Discontinue</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-inv')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitEditInventory()">Update</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+let allDealerships = [];
+let allVehicles    = [];
+
+const pageNames = {
+  'browse':           ['Browse Vehicles',  'Find your perfect vehicle'],
+  'dealerships':      ['Dealerships',      'Explore locations near you'],
+  'admin-inventory':  ['Manage Inventory', 'Update stock and pricing across dealerships'],
+  'admin-vehicles':   ['Add Vehicle',      'Register a new model to the catalogue'],
+};
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  const [title, sub] = pageNames[id] || ['AutoSelect', ''];
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-sub').textContent   = sub;
+  document.getElementById('result-count').textContent = '';
+  if (id === 'dealerships')     loadDealerships();
+  if (id === 'admin-inventory') loadAdminInventory();
+}
+
+async function api(url, opts={}) {
+  try {
+    const r = await fetch(url, opts);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('db-status').textContent = '● Error';
+    document.getElementById('db-status').className = 'badge';
+    return null;
+  }
+}
+
+async function loadStats() {
+  const s = await api('/api/stats/summary');
+  if (!s) return;
+  document.getElementById('s-vehicles').textContent = s.total_vehicles;
+  document.getElementById('s-stock').textContent    = s.total_stock;
+  document.getElementById('s-dealers').textContent  = s.total_dealerships;
+  document.getElementById('s-ev').textContent       = s.electric_models;
+  document.getElementById('s-avg').textContent      = '$' + Number(s.avg_price).toLocaleString();
+}
+
+async function loadVehicles() {
+  const grid = document.getElementById('vehicle-grid');
+  grid.innerHTML = '<div class="loading">Searching…</div>';
+  const params = new URLSearchParams();
+  const fuel   = document.getElementById('f-fuel').value;
+  const body   = document.getElementById('f-body').value;
+  const brand  = document.getElementById('f-brand').value.trim();
+  const budget = document.getElementById('f-budget').value;
+  if (fuel)   params.set('fuel',   fuel);
+  if (body)   params.set('body',   body);
+  if (brand)  params.set('brand',  brand);
+  if (budget) params.set('budget', budget);
+  const data = await api('/api/vehicles?' + params);
+  if (!data) { grid.innerHTML = '<div class="empty-state"><p>Could not connect to database.</p></div>'; return; }
+  allVehicles = data;
+  document.getElementById('result-count').textContent = data.length + ' results';
+  if (!data.length) {
+    grid.innerHTML = '<div class="empty-state"><p>No vehicles found. Try adjusting your filters.</p></div>';
+    return;
+  }
+  grid.innerHTML = data.map(v => vehicleCard(v)).join('');
+}
+
+function vehicleCard(v) {
+  const inStock = v.total_stock > 0;
+  return `<div class="vehicle-card" onclick="openVehicleModal(${v.vehicle_id})">
+    <div class="vc-header">
+      <div class="vc-brand">${v.brand}</div>
+      <div class="vc-model">${v.model}</div>
+      <div class="vc-year">${v.year}</div>
+      <span class="vc-fuel-badge fuel-${v.fuel_type}">${v.fuel_type}</span>
+    </div>
+    <div class="vc-body">
+      <div class="vc-price">$${Number(v.price).toLocaleString()} <span>MSRP</span></div>
+      <div class="vc-meta">
+        ${v.body_style  ? `<span class="vc-meta-item">${v.body_style}</span>`  : ''}
+        ${v.engine_type ? `<span class="vc-meta-item">${v.engine_type}</span>` : ''}
+      </div>
+    </div>
+    <div class="vc-footer">
+      <span class="stock-indicator ${inStock ? 'in-stock' : 'no-stock'}">
+        <span class="stock-dot"></span>
+        ${inStock ? v.total_stock + ' in stock' : 'Out of stock'}
+      </span>
+      <span style="font-size:12px;color:var(--text-3)">${v.dealership_count || 0} dealer${v.dealership_count !== 1 ? 's' : ''}</span>
+    </div>
+  </div>`;
+}
+
+function clearFilters() {
+  document.getElementById('f-fuel').value   = '';
+  document.getElementById('f-body').value   = '';
+  document.getElementById('f-brand').value  = '';
+  document.getElementById('f-budget').value = '';
+  loadVehicles();
+}
+
+async function openVehicleModal(vid) {
+  const v = allVehicles.find(x => x.vehicle_id === vid);
+  document.getElementById('mv-title').textContent = `${v.brand} ${v.model}`;
+  document.getElementById('mv-sub').textContent   = `${v.year} · ${v.fuel_type}${v.body_style ? ' · ' + v.body_style : ''}`;
+  document.getElementById('modal-tab-details').innerHTML = `
+    <div class="info-row"><span class="key">Brand</span><span class="val">${v.brand}</span></div>
+    <div class="info-row"><span class="key">Model</span><span class="val">${v.model}</span></div>
+    <div class="info-row"><span class="key">Year</span><span class="val">${v.year}</span></div>
+    <div class="info-row"><span class="key">MSRP</span><span class="val">$${Number(v.price).toLocaleString()}</span></div>
+    <div class="info-row"><span class="key">Fuel Type</span><span class="val">${v.fuel_type}</span></div>
+    ${v.engine_type ? `<div class="info-row"><span class="key">Engine</span><span class="val">${v.engine_type}</span></div>` : ''}
+    ${v.body_style  ? `<div class="info-row"><span class="key">Body Style</span><span class="val">${v.body_style}</span></div>` : ''}
+  `;
+  document.getElementById('modal-tab-availability').innerHTML = '<div class="loading">Loading…</div>';
+  document.getElementById('modal-tab-financing').innerHTML    = '<div class="loading">Loading…</div>';
+  document.getElementById('vehicle-tabs').style.display = '';
+  switchTab('details', document.querySelector('#vehicle-tabs .tab'));
+  document.getElementById('modal-vehicle').classList.add('open');
+  loadAvailability(vid);
+  loadFinancing(vid);
+}
+
+async function loadAvailability(vid) {
+  const rows = await api(`/api/vehicles/${vid}/dealerships`);
+  if (!rows) return;
+  const el = document.getElementById('modal-tab-availability');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><p>Not stocked at any dealership.</p></div>'; return; }
+  el.innerHTML = `<table style="width:100%">
+    <thead><tr><th>Dealership</th><th>Location</th><th>Stock</th><th>Price</th><th>Status</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td style="font-weight:500">${r.dealership_name}</td><td>${r.location}</td>
+      <td>${r.stock_quantity}</td><td>$${Number(r.dealer_price).toLocaleString()}</td>
+      <td><span class="chip chip-${r.availability_status === 'available' ? 'available' : 'out'}">${r.availability_status}</span></td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+async function loadFinancing(vid) {
+  const rows = await api(`/api/vehicles/${vid}/financing`);
+  if (!rows) return;
+  const el = document.getElementById('modal-tab-financing');
+  if (!rows.length) { el.innerHTML = '<div class="empty-state"><p>No financing options found.</p></div>'; return; }
+  el.innerHTML = `<table style="width:100%">
+    <thead><tr><th>Dealership</th><th>Rate</th><th>Term</th><th>Min Down</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td style="font-weight:500">${r.dealership_name}</td><td>${r.interest_rate}%</td>
+      <td>${r.loan_term_months} mo</td><td>$${Number(r.min_down_payment).toLocaleString()}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('#vehicle-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  ['details','availability','financing'].forEach(n => {
+    document.getElementById('modal-tab-' + n).style.display = n === name ? '' : 'none';
+  });
+}
+
+async function loadDealerships() {
+  const list = document.getElementById('dealer-list');
+  list.innerHTML = '<div class="loading">Loading…</div>';
+  const data = await api('/api/dealerships');
+  if (!data) return;
+  allDealerships = data;
+  list.innerHTML = data.map(d => `
+    <div class="dealer-card" style="cursor:pointer" onclick="viewDealerInventory(${d.dealership_id}, '${d.dealership_name}')">
+      <div class="dealer-icon">
+        <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <div>
+        <div class="dealer-name">${d.dealership_name}</div>
+        <div class="dealer-loc">📍 ${d.location || '—'}</div>
+        <div class="dealer-phone">${d.phone_number || ''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function viewDealerInventory(did, name) {
+  const rows = await api(`/api/dealerships/${did}/inventory`);
+  if (!rows) return;
+  // hide tabs, show details panel only
+  document.getElementById('vehicle-tabs').style.display      = 'none';
+  document.getElementById('modal-tab-details').style.display = '';
+  document.getElementById('modal-tab-availability').style.display = 'none';
+  document.getElementById('modal-tab-availability').innerHTML = '';
+  document.getElementById('modal-tab-financing').style.display = 'none';
+  document.getElementById('modal-tab-financing').innerHTML    = '';
+  document.getElementById('mv-title').textContent = name;
+  document.getElementById('mv-sub').textContent   = 'Inventory';
+  document.getElementById('modal-tab-details').innerHTML = rows.length
+    ? `<p style="font-size:13px;color:var(--text-2);margin-bottom:14px">${rows.length} vehicle model(s) listed</p>
+       <table style="width:100%">
+         <thead><tr><th>Vehicle</th><th>Year</th><th>Fuel</th><th>Stock</th><th>Price</th><th>Status</th></tr></thead>
+         <tbody>${rows.map(r => `<tr>
+           <td style="font-weight:500">${r.brand} ${r.model}</td><td>${r.year}</td><td>${r.fuel_type}</td>
+           <td>${r.stock_quantity}</td><td>$${Number(r.price).toLocaleString()}</td>
+           <td><span class="chip chip-${r.availability_status === 'available' ? 'available' : r.availability_status === 'out_of_stock' ? 'out' : 'discontinued'}">${r.availability_status}</span></td>
+         </tr>`).join('')}</tbody>
+       </table>`
+    : '<div class="empty-state"><p>No inventory at this dealership.</p></div>';
+  document.getElementById('modal-vehicle').classList.add('open');
+}
+
+async function loadAdminInventory() {
+  const did = document.getElementById('admin-dealer-filter').value;
+  let displayRows = [];
+  if (did) {
+    displayRows = await api(`/api/dealerships/${did}/inventory`) || [];
+  } else {
+    displayRows = await api('/api/vehicles') || [];
+  }
+  const tbody = document.getElementById('admin-inv-table');
+  if (did) {
+    tbody.innerHTML = displayRows.map(r => `<tr>
+      <td>${r.vehicle_id}</td><td style="font-weight:500">${r.brand} ${r.model}</td>
+      <td>${r.year}</td><td>${r.fuel_type}</td><td>${r.stock_quantity}</td>
+      <td>$${Number(r.price).toLocaleString()}</td>
+      <td><span class="chip chip-${r.availability_status === 'available' ? 'available' : r.availability_status === 'out_of_stock' ? 'out' : 'discontinued'}">${r.availability_status}</span></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openEditModal(${r.vehicle_id},${did},${r.stock_quantity},${r.price})">Edit</button></td>
+    </tr>`).join('');
+  } else {
+    tbody.innerHTML = displayRows.map(r => `<tr>
+      <td>${r.vehicle_id}</td><td style="font-weight:500">${r.brand} ${r.model}</td>
+      <td>${r.year}</td><td>${r.fuel_type}</td>
+      <td>${r.total_stock || '—'}</td><td>$${Number(r.price).toLocaleString()}</td>
+      <td><span class="chip chip-${r.total_stock > 0 ? 'available' : 'out'}">${r.total_stock > 0 ? 'available' : 'out of stock'}</span></td>
+      <td><span style="font-size:11px;color:var(--text-3)">Select dealership</span></td>
+    </tr>`).join('');
+  }
+}
+
+async function openAddInventoryModal() {
+  const [vehicles, dealers] = await Promise.all([api('/api/vehicles'), api('/api/dealerships')]);
+  document.getElementById('inv-vid').innerHTML = vehicles.map(v => `<option value="${v.vehicle_id}">${v.brand} ${v.model} ${v.year}</option>`).join('');
+  document.getElementById('inv-did').innerHTML = dealers.map(d => `<option value="${d.dealership_id}">${d.dealership_name}</option>`).join('');
+  document.getElementById('modal-add-inv').classList.add('open');
+}
+
+async function submitAddInventory() {
+  const body = {
+    vehicle_id:    parseInt(document.getElementById('inv-vid').value),
+    dealership_id: parseInt(document.getElementById('inv-did').value),
+    stock_quantity:parseInt(document.getElementById('inv-qty').value),
+    price:         parseFloat(document.getElementById('inv-price').value),
+  };
+  if (!body.stock_quantity || !body.price) return alert('Please fill all fields.');
+  await api('/api/admin/inventory', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  closeModal('modal-add-inv');
+  showToast('Inventory added');
+  loadAdminInventory();
+}
+
+function openEditModal(vid, did, qty, price) {
+  document.getElementById('edit-vid').value   = vid;
+  document.getElementById('edit-did').value   = did;
+  document.getElementById('edit-qty').value   = qty;
+  document.getElementById('edit-price').value = price;
+  document.getElementById('modal-edit-inv').classList.add('open');
+}
+
+async function submitEditInventory() {
+  const body = {
+    vehicle_id:    parseInt(document.getElementById('edit-vid').value),
+    dealership_id: parseInt(document.getElementById('edit-did').value),
+    stock_quantity:parseInt(document.getElementById('edit-qty').value),
+    price:         parseFloat(document.getElementById('edit-price').value),
+  };
+  await api('/api/admin/inventory', { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  closeModal('modal-edit-inv');
+  showToast('Inventory updated');
+  loadAdminInventory();
+}
+
+async function discontinueInventory() {
+  if (!confirm('Mark this listing as discontinued?')) return;
+  const body = {
+    vehicle_id:    parseInt(document.getElementById('edit-vid').value),
+    dealership_id: parseInt(document.getElementById('edit-did').value),
+  };
+  await api('/api/admin/inventory', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  closeModal('modal-edit-inv');
+  showToast('Listing discontinued');
+  loadAdminInventory();
+}
+
+async function submitNewVehicle() {
+  const body = {
+    brand:       document.getElementById('nv-brand').value.trim(),
+    model:       document.getElementById('nv-model').value.trim(),
+    year:        parseInt(document.getElementById('nv-year').value),
+    price:       parseFloat(document.getElementById('nv-price').value),
+    fuel_type:   document.getElementById('nv-fuel').value,
+    body_style:  document.getElementById('nv-body').value || null,
+    engine_type: document.getElementById('nv-engine').value.trim() || null,
+  };
+  if (!body.brand || !body.model || !body.year || !body.price) return alert('Please fill all required fields.');
+  const res = await api('/api/admin/vehicles', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (res?.success) { showToast(`Vehicle added (ID: ${res.vehicle_id})`); clearNewVehicleForm(); }
+}
+
+function clearNewVehicleForm() {
+  ['nv-brand','nv-model','nv-year','nv-price','nv-engine'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nv-fuel').value = 'Gas';
+  document.getElementById('nv-body').value = '';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = '✓ ' + msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2800);
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); })
+);
+
+async function populateAdminDealerFilter() {
+  const dealers = await api('/api/dealerships');
+  if (!dealers) return;
+  allDealerships = dealers;
+  const sel = document.getElementById('admin-dealer-filter');
+  dealers.forEach(d => sel.add(new Option(d.dealership_name, d.dealership_id)));
+}
+
+(async () => {
+  await Promise.all([loadStats(), loadVehicles(), populateAdminDealerFilter()]);
+})();
+</script>
+</body>
+</html>
