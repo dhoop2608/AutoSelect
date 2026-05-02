@@ -44,9 +44,11 @@ Built on PostgreSQL with a Python CLI and Flask web interface.
 
 ## Setup
 
+Before use, please create a .env file based on the .env.example. Populate the file with your information then proceed.
+
 ### 1. Install dependencies
 ```bash
-pip install psycopg2-binary flask pandas
+pip install -r python/requirements.txt
 ```
 
 ### 2. Create the database
