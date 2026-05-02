@@ -1,35 +1,24 @@
-"""
-AutoSelect — Kaggle Data Loader
-Loads the 2023 Cars Dataset CSV into the Vehicle table.
-
-Dataset: https://www.kaggle.com/datasets/anoopjohny/2023-cars-dataset
-Download the CSV, place it in the same folder as this script, then run:
-
-    pip install psycopg2-binary pandas
-    python load_kaggle_data.py
-
-Or pass a custom path:
-    python load_kaggle_data.py --file /path/to/cars.csv --preview
-"""
-
 import argparse
+import os
+from dotenv import load_dotenv
 import sys
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 
+load_dotenv()
+
 # ── Config ─────────────────────────────────────────────────────
 DB_CONFIG = {
-    "dbname":   "autoselect",
-    "user":     "dhoopshikhabasgeet",   # change if needed
-    "password": "",           # change if needed
-    "host":     "localhost",
-    "port":     5432,
+    "dbname":   os.environ.get("DB_NAME", "autoselect"),
+    "user":     os.environ["DB_USER"],
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "host":     os.environ.get("DB_HOST", "localhost"),
+    "port":     int(os.environ.get("DB_PORT", "5432")),
 }
 
 # ── Value mappings ─────────────────────────────────────────────
-# Maps whatever values the Kaggle CSV uses to our CHECK constraint values.
-# Extend these dicts if you see unmapped values in the preview output.
+
 
 FUEL_MAP = {
     "gasoline":       "Gas",
@@ -44,7 +33,7 @@ FUEL_MAP = {
     "electric":       "Electric",
     "ev":             "Electric",
     "battery electric": "Electric",
-    "natural gas":    "Gas",    # fallback
+    "natural gas":    "Gas", 
 }
 
 BODY_MAP = {
@@ -59,16 +48,14 @@ BODY_MAP = {
     "hatchback":    "Hatchback",
     "van":          "Van",
     "minivan":      "Van",
-    "wagon":        "Hatchback",  # closest match
-    "convertible":  "Coupe",      # closest match
+    "wagon":        "Hatchback", 
+    "convertible":  "Coupe",     
 }
 
 VALID_FUEL  = {"Gas", "Hybrid", "Electric", "Diesel"}
 VALID_BODY  = {"Sedan", "SUV", "Truck", "Coupe", "Hatchback", "Van"}
 
 # ── Column name candidates ─────────────────────────────────────
-# The Kaggle CSV may use slightly different column headers depending
-# on the version. We try each candidate in order and take the first match.
 
 COL_CANDIDATES = {
     "brand":      ["Make", "make", "Brand", "brand", "Manufacturer", " Car Make "],
@@ -97,18 +84,17 @@ def clean_fuel(val):
     if pd.isna(val):
         return None
     mapped = FUEL_MAP.get(str(val).strip().lower())
-    return mapped  # None if unrecognised — row will be skipped
+    return mapped  
 
 def clean_body(val):
     if pd.isna(val):
         return None
     mapped = BODY_MAP.get(str(val).strip().lower())
-    return mapped  # None if unrecognised — row will be skipped
+    return mapped 
 
 def clean_price(val):
     if pd.isna(val):
         return None
-    # Strip currency symbols, commas, spaces
     cleaned = str(val).replace("$", "").replace(",", "").strip()
     try:
         price = float(cleaned)
@@ -142,7 +128,6 @@ def load(csv_path: str, preview: bool = False, limit: int = None):
     print(f"Raw CSV: {len(df)} rows, {len(df.columns)} columns")
     print(f"Columns found: {list(df.columns)}\n")
 
-    # Resolve column names
     col = {field: resolve_column(df, candidates)
            for field, candidates in COL_CANDIDATES.items()}
 
@@ -166,7 +151,6 @@ def load(csv_path: str, preview: bool = False, limit: int = None):
         print("\nRun without --preview to load into the database.\n")
         return
 
-    # Build cleaned rows
     rows = []
     skipped = 0
     skip_reasons = {}

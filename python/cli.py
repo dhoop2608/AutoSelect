@@ -1,20 +1,17 @@
-"""
-AutoSelect CLI
-CSDS 341 — Final Project
-Run: python cli.py
-Requires: pip install psycopg2-binary1
-"""
-
 import psycopg2
+import os
+from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
+
+load_dotenv()
 
 # ── Database connection ────────────────────────────────────────
 DB_CONFIG = {
-    "dbname":   "autoselect",
-    "user":     "dhoopshikhabasgeet",
-    "password": "",               # change if needed
-    "host":     "localhost",
-    "port":     5432,
+    "dbname":   os.environ.get("DB_NAME", "autoselect"),
+    "user":     os.environ["DB_USER"],
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "host":     os.environ.get("DB_HOST", "localhost"),
+    "port":     int(os.environ.get("DB_PORT", "5432")),
 }
 
 def get_connection():

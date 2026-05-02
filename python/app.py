@@ -1,21 +1,19 @@
-"""
-AutoSelect — Flask Web Backend
-CSDS 341 Final Project
-Run: pip install flask psycopg2-binary && python app.py
-"""
-
 from flask import Flask, jsonify, request, render_template
 import psycopg2
+import os
+from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
+
+load_dotenv()
 
 app = Flask(__name__)
 
 DB_CONFIG = {
-    "dbname":   "autoselect",
-    "user":     "dhoopshikhabasgeet",   # change if needed
-    "password": "",
-    "host":     "localhost",
-    "port":     5432,
+    "dbname":   os.environ.get("DB_NAME", "autoselect"),
+    "user":     os.environ["DB_USER"],
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "host":     os.environ.get("DB_HOST", "localhost"),
+    "port":     int(os.environ.get("DB_PORT", "5432")),
 }
 
 def get_db():

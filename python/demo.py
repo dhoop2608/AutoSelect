@@ -1,30 +1,21 @@
-"""
-AutoSelect — Demo Script
-CSDS 341 Final Project
-
-Runs a scripted walkthrough of all key system features.
-No typing required during the demo — just run and narrate.
-
-Usage:
-    python demo.py            # full demo, pauses between steps
-    python demo.py --fast     # no pauses (for practice timing)
-    python demo.py --step 3   # jump to a specific step
-"""
-
+import os
 import argparse
 import time
 import psycopg2
+from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
+load_dotenv()
+
 DB_CONFIG = {
-    "dbname":   "autoselect",
-    "user":     "dhoopshikhabasgeet",
-    "password": "",           # set your password here
-    "host":     "localhost",
-    "port":     5432,
+    "dbname":   os.environ.get("DB_NAME", "autoselect"),
+    "user":     os.environ["DB_USER"],
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "host":     os.environ.get("DB_HOST", "localhost"),
+    "port":     int(os.environ.get("DB_PORT", "5432")),
 }
 
-FAST = False  # set by --fast flag
+FAST = False 
 
 # ── Helpers ────────────────────────────────────────────────────
 
